@@ -73,3 +73,63 @@ summary(pgls(response ~ explanatory, data=c.data, lambda="ML")) # PGLS lambda = 
 phylosig(tree, explanatory, method="lambda") # Explanatory trait lambda = 1
 phylosig(tree, response, method="lambda") # Response trait lambda = 0.86
 ## ... => PGLS lambda can be 0 when traits show signal
+
+
+
+## Figure 2: PGLS profile
+set.seed(123456)
+tree <- sim.bdtree(n=50, seed=123456)
+trait <- sim.char(tree, 2, root=0, model="speciational")[,,1]
+fitContinuous(tree, trait, model="lambda")
+s.data <- comparative.data(tree, data.frame(trait=trait, species=names(trait)), species)
+profile <- pgls.profile(pgls(trait ~ 1, data=s.data, lambda="ML"), N=50)
+summary(pgls(trait ~ 1, data=s.data, lambda="ML"))
+
+pdf("pgls-profile.pdf")
+par(mar=c(5, 5, 1, 1))
+with(profile, plot(logLik ~ x, xlab=expression(lambda), ylab="log(Likelihood)", axes=FALSE, type="n", cex.lab=1))
+points(v=profile$ci$opt, lwd=5, col="red")
+abline(v=profile$ci$ci.val[1], lwd=3, col="orange")
+abline(v=profile$ci$ci.val[2], lwd=3, col="orange")
+with(profile, lines(logLik ~ x, lwd=3))
+axis(1)
+axis(2, at=c(-134,-130,-125,-120,-115))
+dev.off()
+
+## Figure 3: Bias in signal estimation
+pgls.lam.wrap <- function(x, y){
+    ca <- comparative.data(x, data.frame(trt=y, species=names(y)), species)
+    return(pgls.profile(pgls(trt ~ 1, ca), N=50))
+}
+
+pdf("bias-profile.pdf")
+#
+layout(matrix(1:2, 1), widths=c(.3,.7))
+#
+plot(tree, show.tip.label=FALSE, no.margin=TRUE, x.lim=c(0,5.2))
+tiplabels(tip=1:100, pch=20, col="black", adj=.5)
+tiplabels(tip=which(tree$tip.label %in% names(rnd.sampled)), pch=20, col="blue", adj=.7)
+tiplabels(tip=which(tree$tip.label %in% names(bias.sampled)), pch=20, col="orange", adj=.9)
+tiplabels(tip=which(tree$tip.label %in% names(strong.bias.sampled)), pch=20, col="red", adj=1.1)
+#
+par(mar=c(5, 5, 1, 1))
+liks <- data.frame(
+    liks=c(as.numeric(scale(pgls.lam.wrap(tree, trait)$logLik)),as.numeric(scale(pgls.lam.wrap(tree, rnd.sampled)$logLik)),as.numeric(scale(pgls.lam.wrap(tree, bias.sampled)$logLik)),as.numeric(scale(pgls.lam.wrap(tree, strong.bias.sampled)$logLik))),
+    lam = rep(seq(0,1,length.out=50), 4),
+    sampling=rep(c("all","rnd","bias","strong.bias"), each=50)
+)
+plot(liks$liks ~ 1, xlab=expression(lambda), ylab="scaled log(likelihood)", axes=FALSE, type="n", cex.lab=1, xlim=c(0,1))
+with(liks[liks$sampling=="all",], lines(liks ~ lam, col="black", lwd=3))
+with(liks[liks$sampling=="rnd",], lines(liks ~ lam, col="blue", lwd=3))
+with(liks[liks$sampling=="bias",], lines(liks ~ lam, col="orange", lwd=3))
+with(liks[liks$sampling=="strong.bias",], lines(liks ~ lam, col="red", lwd=3))
+where.maxs <- with(liks, tapply(liks, sampling, which.max)) + c(0,100,50,150)
+with(liks, points(liks[where.maxs] ~ lam[where.maxs], col=c("black","orange","blue","red"), pch=20, cex=3))
+axis(1)
+axis(2)
+text(0.1,1.2, "strong bias", col="red", adj=0)
+text(0.75,2.2, "random", col="blue", adj=0)
+text(.5,1.2, "bias", col="orange", adj=0)
+text(0.7,1.8, "complete", col="black", adj=0)
+#
+dev.off()
