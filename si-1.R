@@ -1,5 +1,5 @@
 ## Supplmement for: How to define, use, and interpret Pagel's \lam (lambda) in ecology and evolution
-## Pearse, David, Wolkovich - 2023-09-22
+## Pearse, Davies, Wolkovich (2025) GEB.
 
 ## What follows are quick 'back of the envelope' demonstrations of
 ##   properties of Pagel's lambda that are already well-established in
